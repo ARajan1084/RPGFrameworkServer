@@ -15,4 +15,8 @@ urlpatterns = [
     path('login/', views.login),
     path('logout/', views.logout),
     path('friends/add/', views.add_friend),
+    path('friends/fetch/', views.fetch_friends),
+    path('friends/requests/fetch/', views.fetch_friend_requests),
+    path('friends/requests/accept/', views.accept_friend_request),
+    path('friends/requests/decline/', views.decline_friend_request),
 ]

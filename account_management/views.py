@@ -1,5 +1,8 @@
 import traceback
+import uuid
+from itertools import chain
 
+from django.utils import timezone
 from rest_framework.authentication import SessionAuthentication, BasicAuthentication
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth.models import User, Group
@@ -11,7 +14,7 @@ from rest_framework.response import Response
 from rest_framework.utils import json
 from rest_framework.views import exception_handler
 
-from account_management.models import Player, FriendRequest
+from account_management.models import Player, FriendRequest, Friendship
 from account_management.serializers import UserSerializer, GroupSerializer
 
 
@@ -66,7 +69,12 @@ def login(request):
         else:
             return Response(status=status.HTTP_400_BAD_REQUEST)
         player = Player.objects.get(user=user)
-        return Response(data=player.player_id, status=status.HTTP_202_ACCEPTED)
+        player_info = {'playerID': str(player.player_id.hex),
+                       'username': str(player.user.username),
+                       'firstName': player.user.first_name,
+                       'lastName': player.user.last_name}
+        print(player_info)
+        return Response(data=json.dumps(player_info), status=status.HTTP_202_ACCEPTED, content_type='application/json')
     except:
         traceback.print_exc()
         response = Response(status=status.HTTP_400_BAD_REQUEST)
@@ -82,13 +90,107 @@ def logout(request):
 
 
 @api_view(['POST'])
+def fetch_friends(request):
+    try:
+        json_data = json.loads(str(request.body, encoding='UTF-8'))
+        player_id = json_data['playerID']
+        friendships = {'Items': []}
+        for friendship in Friendship.objects.filter(friend_1=player_id):
+            friend = Player.objects.get(player_id=friendship.friend_2)
+            friendships.get('Items').append({'player_id': str(friend.player_id.hex),
+                                             'username': friend.user.username,
+                                             'firstName': friend.user.first_name,
+                                             'lastName': friend.user.last_name})
+        for friendship in Friendship.objects.filter(friend_2=player_id):
+            friend = Player.objects.get(player_id=friendship.friend_1)
+            friendships.get('Items').append({'player_id': str(friend.player_id.hex),
+                                             'username': friend.user.username,
+                                             'firstName': friend.user.first_name,
+                                             'lastName': friend.user.last_name})
+        return Response(data=json.dumps(friendships), status=status.HTTP_200_OK, content_type='application/json')
+    except:
+        traceback.print_exc()
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+def fetch_friend_requests(request):
+    try:
+        json_data = json.loads(str(request.body, encoding='UTF-8'))
+        player_id = json_data['playerID']
+        friend_requests = {'Items': []}
+        for friend_request in FriendRequest.objects.filter(addressee=player_id, status='R'):
+            requester = Player.objects.get(player_id=friend_request.requester)
+            friend_requests.get('Items').append({
+                'username': requester.user.username,
+                'firstName': requester.user.first_name,
+                'lastName': requester.user.last_name
+            })
+        return Response(data=json.dumps(friend_requests), status=status.HTTP_200_OK, content_type='application/json')
+    except:
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
 def add_friend(request):
+    try:
+        json_data = json.loads(str(request.body, encoding='UTF-8'))
+        player_id = uuid.UUID(json_data['player_id'])
+        friend_username = json_data['friend_username']
+        friend_id = Player.objects.get(user=User.objects.get(username=friend_username)).player_id
+        # Check if requester and addressee are already friends
+        if Friendship.objects.filter(friend_1=friend_id, friend_2=player_id).exists() or \
+                Friendship.objects.filter(friend_1=player_id, friend_2=friend_id):
+            return Response(status=status.HTTP_208_ALREADY_REPORTED)
+        # Check if a friend request has already been sent between them
+        if FriendRequest.objects.filter(requester=player_id, addressee=friend_id) or \
+                FriendRequest.objects.filter(requester=friend_id, addressee=player_id):
+            return Response(status=status.HTTP_208_ALREADY_REPORTED)
+        # Create friend request
+        friend_request = FriendRequest(requester=player_id, addressee=friend_id)
+        friend_request.save()
+        return Response(status=status.HTTP_202_ACCEPTED)
+    except:
+        traceback.print_exc()
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+def accept_friend_request(request):
     try:
         json_data = json.loads(str(request.body, encoding='UTF-8'))
         player_id = json_data['player_id']
         friend_username = json_data['friend_username']
         friend_id = Player.objects.get(user=User.objects.get(username=friend_username)).player_id
-        friend_request = FriendRequest(requester=player_id, addressee=friend_id)
+        # Check if requester and addressee are already friends
+        if Friendship.objects.filter(friend_1=friend_id, friend_2=player_id).exists() or \
+                Friendship.objects.filter(friend_1=player_id, friend_2=friend_id):
+            return Response(status=status.HTTP_208_ALREADY_REPORTED)
+        # Create and save the friendship
+        new_friendship = Friendship(friend_1=player_id, friend_2=friend_id)
+        new_friendship.save()
+        # Updates the status of the friend request
+        friend_request = FriendRequest.objects.get(requester=friend_id, addressee=player_id)
+        friend_request.status = 'A'
+        friend_request.date_updated = timezone.now()
+        friend_request.save()
+        return Response(status=status.HTTP_202_ACCEPTED)
+    except:
+        traceback.print_exc()
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+def decline_friend_request(request):
+    try:
+        json_data = json.loads(str(request.body, encoding='UTF-8'))
+        player_id = json_data['player_id']
+        friend_username = json_data['friend_username']
+        friend_id = Player.objects.get(user=User.objects.get(username=friend_username)).player_id
+        # Updates the status of the friend request
+        friend_request = FriendRequest.objects.get(requester=friend_id, addressee=player_id)
+        friend_request.status = 'D'
+        friend_request.date_updated = timezone.now()
         friend_request.save()
         return Response(status=status.HTTP_202_ACCEPTED)
     except:
