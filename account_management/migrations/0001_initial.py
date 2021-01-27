@@ -31,7 +31,7 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.CreateModel(
-            name='Friendships',
+            name='Friendship',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('friend_1', models.UUIDField()),

@@ -73,7 +73,6 @@ def login(request):
                        'username': str(player.user.username),
                        'firstName': player.user.first_name,
                        'lastName': player.user.last_name}
-        print(player_info)
         return Response(data=json.dumps(player_info), status=status.HTTP_202_ACCEPTED, content_type='application/json')
     except:
         traceback.print_exc()

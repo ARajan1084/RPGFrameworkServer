@@ -5,9 +5,46 @@ from django.db import models
 
 class Campaign(models.Model):
     campaign_id = models.UUIDField(primary_key=True, null=False, default=uuid.uuid4)
+    active_scene_id = models.UUIDField()
     dm = models.UUIDField(unique=False)
     campaign_name = models.CharField(max_length=64, unique=False)
     campaign_description = models.CharField(max_length=500, unique=False, null=True)
+
+
+class Scene(models.Model):
+    campaign_id = models.UUIDField(primary_key=False, unique=False)
+    scene_id = models.UUIDField(primary_key=True, default=uuid.uuid4)
+    scene_name = models.CharField(max_length=64)
+
+
+class SceneAssetData(models.Model):
+    campaign_id = models.UUIDField(unique=False)
+    scene_id = models.UUIDField(unique=False, default=uuid.uuid4)
+    asset_id = models.UUIDField(unique=False, null=True)
+    asset_x_pos = models.FloatField(null=True)
+    asset_y_pos = models.FloatField(null=True)
+    asset_z_pos = models.FloatField(null=True)
+    asset_x_rot = models.FloatField(null=True)
+    asset_y_rot = models.FloatField(null=True)
+    asset_z_rot = models.FloatField(null=True)
+    asset_x_scale = models.FloatField(null=True)
+    asset_y_scale = models.FloatField(null=True)
+    asset_z_scale = models.FloatField(null=True)
+
+
+class SceneCharacterData(models.Model):
+    campaign_id = models.UUIDField(unique=False)
+    scene_id = models.UUIDField(unique=False)
+    character_id = models.UUIDField(unique=False, null=True)
+    character_x_pos = models.FloatField(null=True)
+    character_y_pos = models.FloatField(null=True)
+    character_z_pos = models.FloatField(null=True)
+    character_x_rot = models.FloatField(null=True)
+    character_y_rot = models.FloatField(null=True)
+    character_z_rot = models.FloatField(null=True)
+    character_x_scale = models.FloatField(null=True)
+    character_y_scale = models.FloatField(null=True)
+    character_z_scale = models.FloatField(null=True)
 
 
 class CampaignMembers(models.Model):
