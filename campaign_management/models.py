@@ -5,7 +5,7 @@ from django.db import models
 
 class Campaign(models.Model):
     campaign_id = models.UUIDField(primary_key=True, null=False, default=uuid.uuid4)
-    active_scene_id = models.UUIDField()
+    active_scene_id = models.UUIDField(null=True)
     dm = models.UUIDField(unique=False)
     campaign_name = models.CharField(max_length=64, unique=False)
     campaign_description = models.CharField(max_length=500, unique=False, null=True)
@@ -20,7 +20,7 @@ class Scene(models.Model):
 class SceneAssetData(models.Model):
     campaign_id = models.UUIDField(unique=False)
     scene_id = models.UUIDField(unique=False, default=uuid.uuid4)
-    asset_id = models.UUIDField(unique=False, null=True)
+    asset_id = models.CharField(max_length=256, unique=False)
     asset_x_pos = models.FloatField(null=True)
     asset_y_pos = models.FloatField(null=True)
     asset_z_pos = models.FloatField(null=True)

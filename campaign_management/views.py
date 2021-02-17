@@ -11,7 +11,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
 from account_management.models import Player
-from campaign_management.models import Campaign, CampaignMembers, SceneAssetData
+from campaign_management.models import Campaign, CampaignMembers, SceneAssetData, Scene
 
 
 @api_view(['POST'])
@@ -21,6 +21,14 @@ def create_campaign(request):
         player_id = json_data['playerID']
         campaign_name = json_data['campaignName']
         campaign = Campaign(dm=player_id, campaign_name=campaign_name)
+        campaign.save()
+        scene = Scene(campaign_id=campaign.campaign_id, scene_name='Default')
+        scene.save()
+        ground = SceneAssetData(campaign_id=campaign.campaign_id, scene_id=scene.scene_id, asset_id="Default/Ground",
+                                asset_x_pos=0, asset_y_pos=0, asset_z_pos=0, asset_x_rot=0, asset_y_rot=0, asset_z_rot=0,
+                                asset_x_scale=1, asset_y_scale=1, asset_z_scale=1)
+        ground.save()
+        campaign.active_scene_id = scene.scene_id
         campaign.save()
         return Response(status=status.HTTP_201_CREATED)
     except:
@@ -38,15 +46,31 @@ def fetch_campaigns(request):
         player_name = player.user.first_name + ' ' + player.user.last_name
         for campaign in Campaign.objects.filter(dm=player_id):
             campaigns.get('Items').append({'campaign_name': campaign.campaign_name,
+                                           'campaign_id': str(campaign.campaign_id.hex),
                                            'campaign_description': campaign.campaign_description,
                                            'dm_name': player_name})
         for campaign_id in CampaignMembers.objects.filter(player_id=player_id):
             campaign = Campaign.objects.get(campaign_id=campaign_id)
             dm = Player.objects.get(player_id=campaign.dm)
             campaigns.get('Items').append({'campaign_name': campaign.campaign_name,
+                                           'campaign_id': str(campaign.campaign_id.hex),
                                            'campaign_description': campaign.campaign_description,
                                            'dm_name': dm.user.first_name + ' ' + dm.user.last_name})
         return Response(data=json.dumps(campaigns), status=status.HTTP_200_OK, content_type='application/json')
+    except:
+        traceback.print_exc()
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+def fetch_active_scene(request):
+    json_data = json.loads(str(request.body, encoding='UTF-8'))
+    try:
+        campaign_id = json_data['campaignID']
+        active_scene_id = Campaign.objects.get(campaign_id=campaign_id).active_scene_id
+        data = {'campaign_id': campaign_id,
+                'scene_id': str(active_scene_id.hex)}
+        return Response(data=json.dumps(data), status=status.HTTP_200_OK, content_type='application/json')
     except:
         traceback.print_exc()
         return Response(status=status.HTTP_400_BAD_REQUEST)
