@@ -24,9 +24,9 @@ def create_campaign(request):
         campaign.save()
         scene = Scene(campaign_id=campaign.campaign_id, scene_name='Default')
         scene.save()
-        ground = SceneAssetData(campaign_id=campaign.campaign_id, scene_id=scene.scene_id, asset_id="Default/Ground",
+        ground = SceneAssetData(scene_id=scene.scene_id, asset_id="Ground",
                                 asset_x_pos=0, asset_y_pos=0, asset_z_pos=0, asset_x_rot=0, asset_y_rot=0, asset_z_rot=0,
-                                asset_x_scale=1, asset_y_scale=1, asset_z_scale=1)
+                                asset_x_scale=5, asset_y_scale=5, asset_z_scale=5)
         ground.save()
         campaign.active_scene_id = scene.scene_id
         campaign.save()
@@ -81,9 +81,8 @@ def fetch_scene_asset_data(request):
     json_data = json.loads(str(request.body, encoding='UTF-8'))
     try:
         scene_id = json_data['scene_id']
-        campaign_id = json_data['campaign_id']
         assets = {'Items': []}
-        for asset in SceneAssetData.objects.filter(scene_id=scene_id, campaign_id=campaign_id):
+        for asset in SceneAssetData.objects.filter(scene_id=scene_id):
             assets.get('Items').append({'asset_id': asset.asset_id,
                                         'x_pos': asset.asset_x_pos,
                                         'y_pos': asset.asset_y_pos,
@@ -95,6 +94,30 @@ def fetch_scene_asset_data(request):
                                         'y_scale': asset.asset_y_scale,
                                         'z_scale': asset.asset_z_scale})
         return Response(data=json.dumps(assets), status=status.HTTP_200_OK, content_type='application/json')
+    except:
+        traceback.print_exc()
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+def save_scene_asset_data(request, scene_id):
+    json_data = json.loads(str(request.body, encoding='UTF-8'))
+    try:
+        assets = json_data['Items']
+        for asset in assets:
+            assetData = SceneAssetData(scene_id=scene_id,
+                                       asset_id=asset['asset_id'],
+                                       asset_x_pos=asset['x_pos'],
+                                       asset_y_pos=asset['y_pos'],
+                                       asset_z_pos=asset['z_pos'],
+                                       asset_x_rot=asset['x_rot'],
+                                       asset_y_rot=asset['y_rot'],
+                                       asset_z_rot=asset['z_rot'],
+                                       asset_x_scale=asset['x_scale'],
+                                       asset_y_scale=asset['y_scale'],
+                                       asset_z_scale=asset['z_scale'])
+            assetData.save()
+        return Response(status=status.HTTP_200_OK)
     except:
         traceback.print_exc()
         return Response(status=status.HTTP_400_BAD_REQUEST)
