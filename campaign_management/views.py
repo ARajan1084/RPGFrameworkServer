@@ -104,8 +104,9 @@ def save_scene_asset_data(request, scene_id):
     json_data = json.loads(str(request.body, encoding='UTF-8'))
     try:
         assets = json_data['Items']
+        clear_scene_asset_data(scene_id)
         for asset in assets:
-            assetData = SceneAssetData(scene_id=scene_id,
+            asset_data = SceneAssetData(scene_id=scene_id,
                                        asset_id=asset['asset_id'],
                                        asset_x_pos=asset['x_pos'],
                                        asset_y_pos=asset['y_pos'],
@@ -116,8 +117,18 @@ def save_scene_asset_data(request, scene_id):
                                        asset_x_scale=asset['x_scale'],
                                        asset_y_scale=asset['y_scale'],
                                        asset_z_scale=asset['z_scale'])
-            assetData.save()
+            asset_data.save()
         return Response(status=status.HTTP_200_OK)
     except:
         traceback.print_exc()
         return Response(status=status.HTTP_400_BAD_REQUEST)
+
+
+def clear_scene_asset_data(scene_id):
+    asset_data = SceneAssetData.objects.filter(scene_id=scene_id)
+    for asset in asset_data:
+        asset.delete()
+    ground = SceneAssetData(scene_id=scene_id, asset_id="Ground",
+                            asset_x_pos=0, asset_y_pos=0, asset_z_pos=0, asset_x_rot=0, asset_y_rot=0, asset_z_rot=0,
+                            asset_x_scale=5, asset_y_scale=5, asset_z_scale=5)
+    ground.save()
