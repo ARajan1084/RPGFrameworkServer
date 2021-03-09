@@ -24,7 +24,7 @@ def create_campaign(request):
         campaign.save()
         scene = Scene(campaign_id=campaign.campaign_id, scene_name='Default')
         scene.save()
-        ground = SceneAssetData(scene_id=scene.scene_id, asset_id="Ground",
+        ground = SceneAssetData(scene_id=scene.scene_id, asset_id="Board",
                                 asset_x_pos=0, asset_y_pos=0, asset_z_pos=0, asset_x_rot=0, asset_y_rot=0, asset_z_rot=0,
                                 asset_x_scale=5, asset_y_scale=5, asset_z_scale=5)
         ground.save()
@@ -63,14 +63,61 @@ def fetch_campaigns(request):
 
 
 @api_view(['POST'])
+def create_scene(request):
+    json_data = json.loads(str(request.body, encoding='UTF-8'))
+    try:
+        campaign_id = json_data['campaign_id']
+        scene_name = json_data['scene_name']
+        scene = Scene(campaign_id=campaign_id, scene_name=scene_name)
+        scene.save()
+        clear_scene_asset_data(scene_id=str(scene.scene_id.hex))
+        return Response(status=status.HTTP_200_OK)
+    except:
+        traceback.print_exc()
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
 def fetch_active_scene(request):
     json_data = json.loads(str(request.body, encoding='UTF-8'))
     try:
         campaign_id = json_data['campaignID']
         active_scene_id = Campaign.objects.get(campaign_id=campaign_id).active_scene_id
-        data = {'campaign_id': campaign_id,
+        active_scene = Scene.objects.get(scene_id=active_scene_id)
+        data = {'scene_name': active_scene.scene_name,
                 'scene_id': str(active_scene_id.hex)}
         return Response(data=json.dumps(data), status=status.HTTP_200_OK, content_type='application/json')
+    except:
+        traceback.print_exc()
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+def set_active_scene(request):
+    json_data = json.loads(str(request.body, encoding='UTF-8'))
+    try:
+        campaign_id = json_data['campaign_id']
+        scene_id = json_data['scene_id']
+        campaign = Campaign.objects.get(campaign_id=campaign_id)
+        campaign.active_scene_id = scene_id
+        campaign.save()
+        return Response(status=status.HTTP_200_OK)
+    except:
+        traceback.print_exc()
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+def fetch_scenes(request):
+    json_data = json.loads(str(request.body, encoding='UTF-8'))
+    try:
+        campaign_id = json_data['campaignID']
+        scenes = Scene.objects.filter(campaign_id=campaign_id)
+        scenes_data = {'Items': []}
+        for scene in scenes:
+            scenes_data.get('Items').append({'scene_name': scene.scene_name,
+                                             'scene_id': str(scene.scene_id.hex)})
+        return Response(data=json.dumps(scenes_data), status=status.HTTP_200_OK, content_type='application/json')
     except:
         traceback.print_exc()
         return Response(status=status.HTTP_400_BAD_REQUEST)
@@ -128,7 +175,7 @@ def clear_scene_asset_data(scene_id):
     asset_data = SceneAssetData.objects.filter(scene_id=scene_id)
     for asset in asset_data:
         asset.delete()
-    ground = SceneAssetData(scene_id=scene_id, asset_id="Ground",
+    ground = SceneAssetData(scene_id=scene_id, asset_id="Board",
                             asset_x_pos=0, asset_y_pos=0, asset_z_pos=0, asset_x_rot=0, asset_y_rot=0, asset_z_rot=0,
                             asset_x_scale=5, asset_y_scale=5, asset_z_scale=5)
     ground.save()

@@ -4,7 +4,10 @@ from campaign_management import views
 urlpatterns = [
     path('new/', views.create_campaign),
     path('fetch/', views.fetch_campaigns),
-    path('scenes/fetch', views.fetch_active_scene),
-    path('scenes/assets/fetch', views.fetch_scene_asset_data),
+    path('scenes/new/', views.create_scene),
+    path('scenes/set/active/', views.set_active_scene),
+    path('scenes/fetch/', views.fetch_scenes),
+    path('scenes/fetch/active/', views.fetch_active_scene),
+    path('scenes/assets/fetch/', views.fetch_scene_asset_data),
     path('scenes/assets/save/<str:scene_id>', views.save_scene_asset_data)
 ]
